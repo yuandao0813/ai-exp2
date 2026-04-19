@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI交互体验研究</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;background:#f0f2f5;color:#333;line-height:1.6}
+.container{max-width:800px;margin:0 auto;padding:20px}
+.card{background:#fff;border-radius:12px;padding:32px 36px;margin-bottom:20px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+h1{font-size:26px;text-align:center;margin-bottom:6px;color:#1a1a2e}
+h2{font-size:20px;margin-bottom:16px;color:#1a1a2e;border-left:4px solid #4a90d9;padding-left:12px}
+h3{font-size:16px;margin:18px 0 10px;color:#444}
+.subtitle{text-align:center;color:#888;font-size:14px;margin-bottom:24px}
+.hidden{display:none!important}
+.btn{display:inline-block;padding:12px 36px;background:#4a90d9;color:#fff;border:none;border-radius:8px;font-size:16px;cursor:pointer;transition:all .2s;text-align:center}
+.btn:hover{background:#357abd;transform:translateY(-1px);box-shadow:0 4px 12px rgba(74,144,217,.3)}
+.btn:disabled{background:#ccc;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-center{text-align:center;margin-top:24px}
+.consent-text{background:#f8f9fa;border:1px solid #e9ecef;border-radius:8px;padding:20px;max-height:420px;overflow-y:auto;margin-bottom:20px;font-size:14px;line-height:1.8}
+.consent-text h4{margin:14px 0 6px;font-size:15px;color:#333}
+.consent-text ul{margin-left:20px;margin-bottom:8px}
+.consent-check{display:flex;align-items:center;gap:10px;margin-top:16px;font-size:15px}
+.consent-check input[type="checkbox"]{width:18px;height:18px;cursor:pointer}
+.demo-group{margin-bottom:20px}
+.demo-group label{display:block;font-weight:600;margin-bottom:8px;font-size:15px}
+.radio-group{display:flex;flex-wrap:wrap;gap:10px}
+.radio-group label{font-weight:normal;display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px}
+input[type="number"],input[type="tel"]{width:100%;max-width:280px;padding:8px 12px;border:1px solid #ddd;border-radius:6px;font-size:15px}
+.ai-interface{background:#fff;border:1px solid #e0e0e0;border-radius:12px;overflow:hidden}
+.ai-header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:14px 20px;font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px}
+.ai-header .round-badge{background:rgba(255,255,255,.2);padding:2px 10px;border-radius:10px;font-size:12px;font-weight:normal}
+.ai-messages{min-height:100px;padding:16px 20px;background:#fafbfc;max-height:600px;overflow-y:auto}
+.msg{display:flex;gap:10px;margin-bottom:14px;align-items:flex-start}
+.msg-user{flex-direction:row-reverse}
+.msg-bubble{max-width:75%;padding:10px 14px;border-radius:12px;font-size:14px;line-height:1.7}
+.msg-user .msg-bubble{background:#4a90d9;color:#fff;border-bottom-right-radius:4px}
+.msg-ai .msg-bubble{background:#fff;border:1px solid #e8e8e8;border-bottom-left-radius:4px}
+.msg-avatar{width:36px;height:36px;min-width:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;background:#f0f0f0}
+.ai-input-area{display:flex;padding:12px;border-top:1px solid #e8e8e8;gap:8px;background:#fff;align-items:flex-end}
+#userInput{flex:1;min-height:40px;max-height:200px;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;line-height:1.5;resize:none;outline:none;overflow-y:hidden;box-sizing:border-box}
+#userInput:focus{border-color:#4a90d9}
+.ai-send{padding:10px 20px;background:#4a90d9;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:14px;transition:background .2s;white-space:nowrap;align-self:flex-end}
+.ai-send:hover{background:#357abd}
+.waiting-bar{display:flex;align-items:center;gap:12px;padding:14px 20px;background:#fafbfc;border-top:1px solid #e8e8e8}
+.waiting-avatar{width:36px;height:36px;min-width:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;background:#f0f0f0}
+.waiting-avatar.spinner-av{border:3px solid #e0e0e0;border-top-color:#4a90d9;animation:avSpin .8s linear infinite}
+.waiting-avatar.thinking-av{background:#fff3cd;animation:avBob 1.2s ease-in-out infinite}
+.waiting-dots{display:flex;gap:4px;align-items:center}
+.waiting-dots span{width:7px;height:7px;background:#aaa;border-radius:50%;animation:dotPulse 1.4s infinite}
+.waiting-dots span:nth-child(2){animation-delay:.2s}
+.waiting-dots span:nth-child(3){animation-delay:.4s}
+@keyframes avSpin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+@keyframes avBob{0%,100%{transform:translateY(0) rotate(0deg)}25%{transform:translateY(-6px) rotate(-5deg)}75%{transform:translateY(-6px) rotate(5deg)}}
+@keyframes dotPulse{0%,60%,100%{opacity:.3;transform:scale(.8)}30%{opacity:1;transform:scale(1)}}
+.scenario-box{background:#f0f4ff;border:1px solid #d0ddf0;border-radius:8px;padding:14px 18px;margin-bottom:16px;font-size:14px;line-height:1.7}
+.scenario-box strong{color:#4a90d9}
+.round-header{text-align:center;margin-bottom:16px}
+.round-header .round-num{display:inline-block;background:#4a90d9;color:#fff;padding:4px 16px;border-radius:16px;font-size:14px;font-weight:600}
+.round-header .round-title{font-size:18px;color:#333;margin-top:8px}
+.vas-container{padding:24px 20px}
+.vas-label{font-size:14px;color:#555;margin-bottom:24px;text-align:center;line-height:1.9}
+.vas-slider-wrap{position:relative;margin:0 auto;max-width:520px;padding:0 10px}
+.vas-labels{display:flex;justify-content:space-between;margin-top:14px;font-size:13px;color:#666;padding:0 10px}
+input[type="range"].vas-range{-webkit-appearance:none;appearance:none;width:100%;height:6px;background:transparent;outline:none;position:relative;z-index:3;cursor:pointer}
+input[type="range"].vas-range::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:22px;height:22px;background:#fff;border:3px solid #4a90d9;border-radius:50%;cursor:grab;box-shadow:0 2px 8px rgba(0,0,0,.15);margin-top:-8px}
+input[type="range"].vas-range::-moz-range-thumb{width:22px;height:22px;background:#fff;border:3px solid #4a90d9;border-radius:50%;cursor:grab;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+input[type="range"].vas-range::-webkit-slider-runnable-track{height:6px;background:linear-gradient(90deg,#4a90d9 0%,#4a90d9 var(--fill-pct,50%),#e8e8e8 var(--fill-pct,50%),#e8e8e8 100%);border-radius:3px}
+input[type="range"].vas-range::-moz-range-track{height:6px;background:#e8e8e8;border-radius:3px}
+input[type="range"].vas-range::-moz-range-progress{height:6px;background:#4a90d9;border-radius:3px}
+.sam-section{margin:20px 0}
+.sam-section h3{font-size:16px;margin-bottom:14px}
+.sam-row{display:flex;justify-content:center;gap:10px;margin-bottom:6px;flex-wrap:wrap}
+.sam-option{display:flex;flex-direction:column;align-items:center;cursor:pointer;padding:8px 12px;border:2px solid transparent;border-radius:10px;transition:all .2s}
+.sam-option:hover{background:#f0f4ff;border-color:#d0ddf0}
+.sam-option.selected{background:#e8f0fe;border-color:#4a90d9}
+.sam-option svg{width:44px;height:60px}
+.sam-option input[type="radio"]{margin-top:4px}
+.sam-labels{display:flex;justify-content:space-between;font-size:12px;color:#888;padding:0 20px;margin-top:4px}
+.likert-table{width:100%;border-collapse:collapse;margin:10px 0}
+.likert-table th{padding:8px 4px;font-size:12px;color:#666;font-weight:normal;text-align:center}
+.likert-table th:first-child{text-align:left;width:40%}
+.likert-table td{padding:10px 4px;text-align:center;border-top:1px solid #f0f0f0;font-size:14px}
+.likert-table td:first-child{text-align:left;font-size:14px}
+.likert-table tr:hover{background:#fafbfc}
+.likert-table input[type="radio"]{width:18px;height:18px;cursor:pointer}
+.progress-bar{position:fixed;top:0;left:0;width:100%;height:4px;background:#e8e8e8;z-index:1000}
+.progress-fill{height:100%;background:linear-gradient(90deg,#4a90d9,#667eea);transition:width .4s ease}
+.result-box{text-align:center;padding:30px}
+.result-box p{font-size:15px;color:#666;margin-bottom:8px}
+.ai-response-area{padding:12px 20px;background:#fafbfc;border-top:1px solid #e8e8e8}
+.important-notice{background:#fff8e1;border:2px solid #ffb74d;border-radius:10px;padding:18px 20px;margin-bottom:20px;font-size:14px;line-height:1.9}
+.important-notice .notice-title{font-size:16px;font-weight:700;color:#e65100;margin-bottom:8px}
+@media(max-width:600px){
+  .card{padding:20px 14px}
+  .sam-row{gap:4px}
+  .sam-option{padding:6px 6px}
+  .sam-option svg{width:32px;height:44px}
+  .likert-table{font-size:12px}
+  .likert-table td,.likert-table th{padding:6px 2px}
+  .msg-bubble{max-width:85%}
+  #userInput{min-height:36px;font-size:14px}
+  .ai-input-area{padding:8px}
+  .vas-slider-wrap{max-width:100%}
+}
+</style>
+</head>
+<body>
+
+<div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+
+<div class="container">
+
+<div class="card" id="sec-consent">
+  <h1>研究知情同意书</h1>
+  <p class="subtitle">南京师范大学心理学院 · 应用心理学本科毕业设计</p>
+  <div class="important-notice">
+    <div class="notice-title">实验前小提示</div>
+    <p>在实验过程中，当您发送问题后，AI系统可能需要一小段时间来生成回答。这段时间是实验的重要组成部分，请您：</p>
+    <p>放轻松，<strong>不用着急</strong>，静静等待即可；</p>
+    <p>留意一下自己在等待时的<strong>真实感受</strong>——是觉得时间过得快还是慢？心情怎么样？</p>
+    <p>之后的问卷就是围绕这些感受来填写的，<strong>您最真实的体验就是最好的答案</strong>。</p>
+  </div>
+  <div class="consent-text">
+    <h4>研究简介</h4>
+    <p>欢迎您参与本次研究。本研究由南京师范大学心理学院组织开展，您将体验一个模拟的AI对话界面（共三轮），并在每轮体验后填写相关问卷。</p>
+    <h4>实验流程</h4>
+    <ul><li>体验三轮模拟AI对话</li><li>每轮体验后填写评价问卷</li><li>填写基本信息</li><li>总时长约8分钟</li></ul>
+    <h4>风险与收益</h4>
+    <p>本研究不涉及任何身体或心理伤害性操作。您的参与将为相关学术研究提供有价值的参考依据。</p>
+    <h4>保密与隐私</h4>
+    <p>您的所有数据将被匿名处理，仅用于学术研究目的。研究结果将以群体数据形式呈现，不会涉及任何个人身份信息。您提供的支付宝账号仅用于发放报酬，研究结束后将删除。</p>
+    <h4>自愿原则</h4>
+    <p>您的参与完全自愿，您有权在实验任何阶段无条件退出，且无需说明理由，不会受到任何不利影响。</p>
+    <h4>研究者信息</h4>
+    <p>研究者：周陈成（南京师范大学心理学院应用心理学专业）<br>联系邮箱：yuandao0813@163.com</p>
+  </div>
+  <div class="consent-check">
+    <input type="checkbox" id="consentBox">
+    <label for="consentBox">我已阅读并理解以上内容，<strong>自愿同意</strong>参与本研究。</label>
+  </div>
+  <div class="btn-center"><button class="btn" id="consentBtn" disabled onclick="goTo('sec-instruct')">同意并继续</button></div>
+</div>
+
+<div class="card hidden" id="sec-instruct">
+  <h2>实验说明</h2>
+  <p>接下来您将体验<strong>三轮</strong>模拟的AI对话。每轮中，AI助手会为您解答一个不同的问题。</p>
+  <p>每轮流程：</p>
+  <ul style="margin-left:20px;margin-bottom:16px"><li>阅读场景说明</li><li>在对话框中输入指定问题并发送</li><li>等待AI生成回答</li><li>阅读回答后点击"下一步"进入评价</li></ul>
+  <p style="color:#888;font-size:14px">请认真体验每一轮，并如实填写评价。总时长约8分钟。感谢您的参与！</p>
+  <div class="btn-center"><button class="btn" onclick="startRound(1)">开始第一轮</button></div>
+</div>
+
+<div class="card hidden" id="sec-chat">
+  <div class="round-header">
+    <span class="round-num" id="chatRoundBadge">第 1 轮</span>
+    <div class="round-title" id="chatRoundTitle">场景</div>
+  </div>
+  <div class="scenario-box" id="scenarioBox"></div>
+  <div class="ai-interface">
+    <div class="ai-header">AI 助手 <span class="round-badge" id="headerBadge">第1轮</span></div>
+    <div class="ai-messages" id="aiMessages"></div>
+    <div id="waitingBar" class="hidden"></div>
+    <div id="responseArea" class="hidden ai-response-area">
+      <div class="btn-center" style="margin-top:8px"><button class="btn" onclick="proceedToMeasure()">阅读完毕，进入评价</button></div>
+    </div>
+    <div class="ai-input-area" id="inputArea">
+      <textarea id="userInput" placeholder="请输入你的问题..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendQuestion();}" oninput="autoResizeTextarea(this)"></textarea>
+      <button class="ai-send" onclick="sendQuestion()">发送</button>
+    </div>
+  </div>
+</div>
+
+<div class="card hidden" id="sec-measure">
+  <div class="round-header">
+    <span class="round-num" id="measRoundBadge">第 1 轮</span>
+    <div class="round-title">体验评价</div>
+  </div>
+  <div id="meas-cas">
+    <h2>时间体验评价</h2>
+    <div class="vas-container">
+      <p class="vas-label">请回忆刚才<strong>等待AI生成回答</strong>时的感受。<br>在那段等待时间里，您觉得时间过得有多快或多慢？<br>请拖动下方滑块，标记您在<strong>等待AI回答过程中</strong>的主观时间体验。</p>
+      <div class="vas-slider-wrap"><input type="range" class="vas-range" id="vasSlider" min="0" max="100" value="50" oninput="updateVAS(this.value)"></div>
+      <div class="vas-labels"><span>时间过得飞快</span><span>时间极其漫长</span></div>
+    </div>
+    <div class="btn-center"><button class="btn" onclick="validateCAS()">下一步</button></div>
+  </div>
+  <div class="hidden" id="meas-sam">
+    <h2>情绪评价</h2>
+    <p style="color:#666;margin-bottom:16px;font-size:14px">请根据您刚才在等待过程中的感受，选择最能代表您情绪的图形。</p>
+    <div class="sam-section"><h3>1. 在等待过程中，您的感受是：</h3><div class="sam-row" id="samValRow"></div><div class="sam-labels"><span>非常愉快</span><span>非常不愉快</span></div></div>
+    <div class="sam-section"><h3>2. 在等待过程中，您的兴奋程度是：</h3><div class="sam-row" id="samArRow"></div><div class="sam-labels"><span>非常兴奋</span><span>非常平静</span></div></div>
+    <div class="btn-center"><button class="btn" onclick="validateSAM()">下一步</button></div>
+  </div>
+  <div class="hidden" id="meas-anxiety">
+    <h2>等待感受评价</h2>
+    <p style="color:#666;margin-bottom:16px;font-size:14px">请根据您刚才在<strong>等待过程中</strong>的感受，选择最符合的选项。</p>
+    <table class="likert-table" id="anxTable"></table>
+    <div class="btn-center"><button class="btn" onclick="validateAnx()">下一步</button></div>
+  </div>
+  <div class="hidden" id="meas-presence">
+    <h2>交互感受评价</h2>
+    <p style="color:#666;margin-bottom:16px;font-size:14px">请根据您刚才在<strong>等待过程中</strong>的感受，选择符合程度。</p>
+    <table class="likert-table" id="spTable"></table>
+    <div class="btn-center"><button class="btn" onclick="validateSP()">下一步</button></div>
+  </div>
+  <div class="hidden" id="meas-prompt">
+    <h2>提示评价</h2>
+    <p style="color:#666;margin-bottom:16px;font-size:14px">请根据您刚才看到的<strong>等待提示</strong>，选择最符合的描述。</p>
+    <table class="likert-table" id="paTable"></table>
+    <div class="btn-center"><button class="btn" onclick="validatePA()">下一步</button></div>
+  </div>
+  <div class="hidden" id="meas-satisfaction">
+    <h2>满意度评价</h2>
+    <p style="color:#666;margin-bottom:16px;font-size:14px">请根据您的整体体验，选择符合程度。</p>
+    <table class="likert-table" id="satTable"></table>
+    <div class="btn-center"><button class="btn" onclick="validateSAT()">提交本轮评价</button></div>
+  </div>
+</div>
+
+<div class="card hidden" id="sec-transition">
+  <h2 id="transTitle">准备下一轮</h2>
+  <p id="transText" style="font-size:15px;margin-bottom:10px"></p>
+  <p style="color:#888;font-size:14px;margin-bottom:10px">接下来将进入新一轮体验，请认真感受并如实评价。</p>
+  <div class="btn-center"><button class="btn" id="transBtn">开始下一轮</button></div>
+</div>
+
+<div class="card hidden" id="sec-demo">
+  <h2>基本信息</h2>
+  <div class="demo-group"><label>1. 您的性别</label><div class="radio-group"><label><input type="radio" name="gender" value="male"> 男</label><label><input type="radio" name="gender" value="female"> 女</label><label><input type="radio" name="gender" value="other"> 其他</label></div></div>
+  <div class="demo-group"><label>2. 您的年龄</label><input type="number" id="age" min="16" max="60" placeholder="请输入"></div>
+  <div class="demo-group"><label>3. 您使用生成式AI（如ChatGPT、豆包、DeepSeek等）的频率</label><div class="radio-group"><label><input type="radio" name="ai_freq" value="1"> 从不使用</label><label><input type="radio" name="ai_freq" value="2"> 偶尔使用</label><label><input type="radio" name="ai_freq" value="3"> 有时使用</label><label><input type="radio" name="ai_freq" value="4"> 经常使用</label><label><input type="radio" name="ai_freq" value="5"> 每天使用</label></div></div>
+  <div class="demo-group">
+  <label>4. 实验感想（非必填）</label>
+  <p style="font-size:13px;color:#999;margin-bottom:8px">您可以在此处填写实验做完的感受，或是疑惑不解，或是任何想吐槽留言的内容。<strong>非必填</strong>，无需顾虑。</p>
+  <textarea id="feedback" placeholder="在此输入..." rows="4" style="width:100%;max-width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;line-height:1.6;resize:vertical;outline:none;overflow-y:auto;box-sizing:border-box" oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
+</div>
+
+  <div class="btn-center"><button class="btn" onclick="validateDemo()">下一步</button></div>
+</div>
+
+<div class="card hidden" id="sec-phone">
+  <h2>联系方式</h2>
+  <p style="color:#666;margin-bottom:16px;font-size:14px">如您需要获取实验报酬，请留下您的支付宝账号。<strong>被试费将在审核通过后发放至您留下的支付宝账号。</strong>此信息仅用于联系发放报酬，研究结束后将删除。</p>
+  <div class="demo-group"><label>支付宝账号（选填）</label><input type="tel" id="phone" placeholder="请输入支付宝账号" maxlength="50"></div>
+  <div class="btn-center"><button class="btn" onclick="finishExperiment()">提交</button></div>
+</div>
+
+<div class="card hidden" id="sec-debrief">
+  <div class="result-box">
+    <div style="font-size:48px;margin-bottom:16px">&#10004;</div>
+    <h2 style="border:none;padding:0;text-align:center">实验结束</h2>
+    <p style="margin-top:16px"><strong>感谢您的参与！</strong></p>
+    <p>本研究的真实目的是探究生成式AI交互过程中，<strong>不同等待提示方式与时长</strong>对用户体验的影响。</p>
+    <p>您的数据已成功提交。如有任何疑问，请联系研究者（yuandao0813@163.com）。</p>
+    <div class="btn-center" style="margin-top:24px"><button class="btn" onclick="downloadData()">下载数据 (CSV)</button></div>
+    <p style="margin-top:20px;font-size:13px;color:#aaa">再次感谢您的宝贵时间！</p>
+  </div>
+</div>
+
+</div>
+
+<script>
+var WAIT_TIMES=[8000,14000,20000];
+
+var SCENARIOS_ORIG=[
+  {
+    title:'场景：旅行规划',sceneType:'travel',
+    instruction:'请在下方输入框中输入以下问题并发送：<br><strong>"我即将去上海旅游，请为我生成一份上海5天4夜深度游攻略。"</strong>',
+    defaultInput:'我即将去上海旅游，请为我生成一份上海5天4夜深度游攻略。',
+    response:'<p>为您深度定制的"魔都"上海5天4夜全景沉浸式旅游攻略已生成。本方案综合了最新的交通路线、景点限流政策与地道美食分布，为您提供最优解。</p><p><strong>一、住宿区域深度解析与方案推荐</strong></p><p><strong>方案A：人民广场/南京东路商圈</strong><br>优势：绝对的市中心，地铁1、2、8号线三线交汇。步行可达外滩、豫园。预算与推荐：全季/桔子水晶（¥500-800/晚）。</p><p><strong>方案B：静安寺/南京西路商圈</strong><br>优势：周边梧桐区环绕，安福路、武康路近在咫尺。预算与推荐：亚朵S/隐居繁华（¥700-1200/晚）。</p><p><strong>二、每日行程</strong></p><p><strong>Day 1：</strong>上海博物馆 → 黄河路午餐 → 轮渡跨江 → 陆家嘴登高</p><p><strong>Day 2：</strong>武康路-安福路Citywalk → 思南公馆 → 田子坊</p><p><strong>Day 3：</strong>上海迪士尼度假区全天</p><p><strong>Day 4：</strong>1933老场坊 → 四行仓库 → 北外滩夜景</p><p><strong>Day 5：</strong>朵云书院 → 淮海中路采购 → 返程</p><p>（总计覆盖26个核心地点、4条主要地铁线路及8种特色餐饮。祝您在上海获得超出预期的旅行体验！）</p>'
+  },
+  {
+    title:'场景：学术综述',sceneType:'academic',
+    instruction:'请在下方输入框中输入以下问题并发送：<br><strong>"我想要了解人机交互领域的研究现状，请你为我写一份报告。"</strong>',
+    defaultInput:'我想要了解人机交互领域的研究现状，请你为我写一份报告。',
+    response:'<p>为您撰写的《生成式AI时代下人机交互（HCI）的发展前沿与范式演进》深度学术综述已完成。</p><p><strong>摘要</strong> 随着大语言模型的突破性进展，HCI领域正经历本体论层面的变革。本综述系统梳理了交互范式的演进规律。</p><p><strong>一、交互范式的演进</strong></p><p>核心范式从CLI到GUI再到NUI的演化。生成式AI时代，交互转变为"意图驱动"，用户仅需描述最终目标。</p><p><strong>二、CASA范式的重构</strong></p><p>通过赋予Agent独特的角色设定、共情话术以及非言语视觉线索，能够显著提升用户的社会临场感。</p><p><strong>三、算法厌恶与XAI</strong></p><p>适当的延迟配合可视化"推理链"展示，能有效诱发劳动幻觉，提升信任。向用户解释"AI为什么这么想"比解释"AI怎么计算"更能有效缓解算法厌恶。</p><p><strong>四、未来研究命题</strong></p><p>人机共创中的主观能动性保留、系统延迟与认知时间知觉的优化、动态价值对齐。</p>'
+  },
+  {
+    title:'场景：美食烹饪',sceneType:'cooking',
+    instruction:'请在下方输入框中输入以下问题并发送：<br><strong>"请为我生成一份红烧排骨终极保姆级硬核教学。"</strong>',
+    defaultInput:'请为我生成一份红烧排骨终极保姆级硬核教学。',
+    response:'<p>为您生成《中式红烧排骨终极烹饪SOP与风味科学解析》。</p><p><strong>一、食材选购</strong><br>必须购买"猪中排（精排段）"，标准量1000克，斩成4厘米小块。</p><p><strong>二、预处理</strong><br>冷水浸泡30分钟去血水 → 冷水下锅焯水 → 温水清洗（绝对不能用冷水！）。</p><p><strong>三、炒糖色</strong><br>中小火炒冰糖至枣红色，立刻倒入排骨大火翻炒，发生美拉德反应。</p><p><strong>四、炖煮</strong><br>加沸水没过排骨1厘米，大火烧开后转最小火炖40分钟，再加盐炖15分钟。</p><p><strong>五、大火收汁</strong><br>挑出香料，最大火收汁至"亮油挂汁"状态——汤汁如糖浆般黏稠，排骨表面泛油光。立刻关火出锅。</p><p>遵循此SOP，您将得到一盘色泽红亮如琥珀、肉质酥烂脱骨的顶级红烧排骨。</p>'
+  }
+];
+
+var SAM_VAL_SVGS=[
+  '<svg viewBox="0 0 60 80"><circle cx="30" cy="22" r="18" fill="#FFD93D" stroke="#E8B830" stroke-width="1.5"/><circle cx="23" cy="18" r="2.5" fill="#333"/><circle cx="37" cy="18" r="2.5" fill="#333"/><path d="M20 27 Q30 37 40 27" stroke="#333" stroke-width="2.5" fill="none" stroke-linecap="round"/><line x1="30" y1="40" x2="30" y2="58" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="46" x2="18" y2="54" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="46" x2="42" y2="54" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="58" x2="22" y2="74" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="58" x2="38" y2="74" stroke="#E8B830" stroke-width="2.5"/></svg>',
+  '<svg viewBox="0 0 60 80"><circle cx="30" cy="22" r="18" fill="#FFD93D" stroke="#E8B830" stroke-width="1.5"/><circle cx="23" cy="18" r="2.5" fill="#333"/><circle cx="37" cy="18" r="2.5" fill="#333"/><path d="M22 28 Q30 34 38 28" stroke="#333" stroke-width="2.5" fill="none" stroke-linecap="round"/><line x1="30" y1="40" x2="30" y2="58" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="46" x2="20" y2="52" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="46" x2="40" y2="52" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="58" x2="22" y2="74" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="58" x2="38" y2="74" stroke="#E8B830" stroke-width="2.5"/></svg>',
+  '<svg viewBox="0 0 60 80"><circle cx="30" cy="22" r="18" fill="#FFD93D" stroke="#E8B830" stroke-width="1.5"/><circle cx="23" cy="18" r="2.5" fill="#333"/><circle cx="37" cy="18" r="2.5" fill="#333"/><line x1="22" y1="29" x2="38" y2="29" stroke="#333" stroke-width="2.5" stroke-linecap="round"/><line x1="30" y1="40" x2="30" y2="58" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="46" x2="20" y2="52" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="46" x2="40" y2="52" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="58" x2="22" y2="74" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="58" x2="38" y2="74" stroke="#E8B830" stroke-width="2.5"/></svg>',
+  '<svg viewBox="0 0 60 80"><circle cx="30" cy="22" r="18" fill="#FFD93D" stroke="#E8B830" stroke-width="1.5"/><circle cx="23" cy="18" r="2.5" fill="#333"/><circle cx="37" cy="18" r="2.5" fill="#333"/><path d="M22 32 Q30 26 38 32" stroke="#333" stroke-width="2.5" fill="none" stroke-linecap="round"/><line x1="30" y1="40" x2="30" y2="58" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="46" x2="20" y2="52" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="46" x2="40" y2="52" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="58" x2="22" y2="74" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="58" x2="38" y2="74" stroke="#E8B830" stroke-width="2.5"/></svg>',
+  '<svg viewBox="0 0 60 80"><circle cx="30" cy="22" r="18" fill="#FFD93D" stroke="#E8B830" stroke-width="1.5"/><circle cx="23" cy="18" r="2.5" fill="#333"/><circle cx="37" cy="18" r="2.5" fill="#333"/><path d="M20 33 Q30 25 40 33" stroke="#333" stroke-width="2.5" fill="none" stroke-linecap="round"/><line x1="30" y1="40" x2="30" y2="58" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="46" x2="18" y2="50" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="46" x2="42" y2="50" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="58" x2="22" y2="74" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="58" x2="38" y2="74" stroke="#E8B830" stroke-width="2.5"/></svg>'
+];
+var SAM_AR_SVGS=[
+  '<svg viewBox="0 0 60 80"><circle cx="30" cy="22" r="18" fill="#FFD93D" stroke="#E8B830" stroke-width="1.5"/><path d="M21 16 L25 13 L23 18 Z" fill="#333"/><path d="M39 16 L35 13 L37 18 Z" fill="#333"/><ellipse cx="30" cy="30" rx="6" ry="7" fill="#333"/><line x1="30" y1="40" x2="30" y2="58" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="44" x2="14" y2="38" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="44" x2="46" y2="38" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="58" x2="22" y2="74" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="58" x2="38" y2="74" stroke="#E8B830" stroke-width="2.5"/></svg>',
+  '<svg viewBox="0 0 60 80"><circle cx="30" cy="22" r="18" fill="#FFD93D" stroke="#E8B830" stroke-width="1.5"/><circle cx="23" cy="17" r="3" fill="#333"/><circle cx="37" cy="17" r="3" fill="#333"/><ellipse cx="30" cy="30" rx="5" ry="5" fill="#333"/><line x1="30" y1="40" x2="30" y2="58" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="45" x2="18" y2="48" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="45" x2="42" y2="48" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="58" x2="22" y2="74" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="58" x2="38" y2="74" stroke="#E8B830" stroke-width="2.5"/></svg>',
+  '<svg viewBox="0 0 60 80"><circle cx="30" cy="22" r="18" fill="#FFD93D" stroke="#E8B830" stroke-width="1.5"/><circle cx="23" cy="18" r="2.5" fill="#333"/><circle cx="37" cy="18" r="2.5" fill="#333"/><ellipse cx="30" cy="30" rx="4" ry="4" fill="#333"/><line x1="30" y1="40" x2="30" y2="58" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="46" x2="20" y2="52" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="46" x2="40" y2="52" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="58" x2="22" y2="74" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="58" x2="38" y2="74" stroke="#E8B830" stroke-width="2.5"/></svg>',
+  '<svg viewBox="0 0 60 80"><circle cx="30" cy="22" r="18" fill="#FFD93D" stroke="#E8B830" stroke-width="1.5"/><line x1="20" y1="18" x2="26" y2="18" stroke="#333" stroke-width="2" stroke-linecap="round"/><line x1="34" y1="18" x2="40" y2="18" stroke="#333" stroke-width="2" stroke-linecap="round"/><line x1="24" y1="30" x2="36" y2="30" stroke="#333" stroke-width="2" stroke-linecap="round"/><line x1="30" y1="40" x2="30" y2="58" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="46" x2="20" y2="54" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="46" x2="40" y2="54" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="58" x2="22" y2="74" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="58" x2="38" y2="74" stroke="#E8B830" stroke-width="2.5"/></svg>',
+  '<svg viewBox="0 0 60 80"><circle cx="30" cy="22" r="18" fill="#FFD93D" stroke="#E8B830" stroke-width="1.5"/><line x1="20" y1="18" x2="26" y2="18" stroke="#333" stroke-width="2" stroke-linecap="round"/><line x1="34" y1="18" x2="40" y2="18" stroke="#333" stroke-width="2" stroke-linecap="round"/><path d="M24 30 Q30 26 36 30" stroke="#333" stroke-width="2" fill="none" stroke-linecap="round"/><line x1="30" y1="40" x2="30" y2="58" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="46" x2="20" y2="56" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="46" x2="40" y2="56" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="58" x2="22" y2="74" stroke="#E8B830" stroke-width="2.5"/><line x1="30" y1="58" x2="38" y2="74" stroke="#E8B830" stroke-width="2.5"/></svg>'
+];
+
+var ANX_ITEMS=['1. 我感到平静','2. 我感到紧张','3. 我感到心烦意乱','4. 我感到放松','5. 我感到担忧','6. 我感到愉快'];
+var ANX_LABELS=['完全没有','有一点','比较强烈','非常强烈'];
+var SP_ITEMS=[
+  '1. 在等待过程中，我感觉到一种温暖的存在感',
+  '2. 在等待过程中，该系统给人感觉是善于交际的',
+  '3. 在等待过程中，该系统给人感觉是敏感的',
+  '4. 在等待过程中，该系统让我感觉是在与人性化的界面互动'
+];
+var SP_LABELS=['完全不同意','','','中立','','','完全同意'];
+var PA_ITEMS=[
+  {left:'假的',right:'自然的'},{left:'机械的',right:'有机的'},{left:'无意识的',right:'有意识的'},
+  {left:'人造的',right:'有生命的'},{left:'僵硬的',right:'流畅的'}
+];
+var PA_TEXTS=['该等待提示看起来','该等待提示','该等待提示的行为','该等待提示','该等待提示的动作'];
+var SAT_ITEMS=[
+  '1. 该系统的等待提示让我在等待过程中感到舒适',
+  '2. 该系统的等待提示有效地缓解了我的等待焦虑',
+  '3. 该系统的等待提示让我觉得等待时间是合理的',
+  '4. 总体而言，我对本次交互体验感到满意',
+  '5. 我愿意再次使用具有类似等待提示的AI系统',
+  '6. 我认为该系统的等待提示设计是有价值的'
+];
+var SAT_LABELS=['完全不同意','','','中立','','','完全同意'];
+
+var currentRound=0,WAIT_MS=8000,group='',roundScenarios=[],sectionTimestamps={};
+var expData={
+  pid:'',group:'',gender:'',age:'',ai_freq:'',phone:'',
+  ts_start:'',ts_end:'',total_duration_ms:'',
+  r1_scen:'',r1_chat_start:'',r1_chat_end:'',r1_chat_dwell_ms:'',r1_meas_start:'',r1_meas_end:'',r1_meas_dwell_ms:'',r1_read_dwell_ms:'',
+  r2_scen:'',r2_chat_start:'',r2_chat_end:'',r2_chat_dwell_ms:'',r2_meas_start:'',r2_meas_end:'',r2_meas_dwell_ms:'',r2_read_dwell_ms:'',
+  r3_scen:'',r3_chat_start:'',r3_chat_end:'',r3_chat_dwell_ms:'',r3_meas_start:'',r3_meas_end:'',r3_meas_dwell_ms:'',r3_read_dwell_ms:'',
+  r1_user_input:'',r1_obj_ms:'',r1_cas:'',
+  r1_sam_val:'',r1_sam_ar:'',
+  r1_anx1:'',r1_anx2:'',r1_anx3:'',r1_anx4:'',r1_anx5:'',r1_anx6:'',
+  r1_sp1:'',r1_sp2:'',r1_sp3:'',r1_sp4:'',
+  r1_pa1:'',r1_pa2:'',r1_pa3:'',r1_pa4:'',r1_pa5:'',
+  r1_sat1:'',r1_sat2:'',r1_sat3:'',r1_sat4:'',r1_sat5:'',r1_sat6:'',
+  r2_user_input:'',r2_obj_ms:'',r2_cas:'',
+  r2_sam_val:'',r2_sam_ar:'',
+  r2_anx1:'',r2_anx2:'',r2_anx3:'',r2_anx4:'',r2_anx5:'',r2_anx6:'',
+  r2_sp1:'',r2_sp_att:'',r2_sp2:'',r2_sp3:'',r2_sp4:'',
+  r2_pa1:'',r2_pa2:'',r2_pa3:'',r2_pa4:'',r2_pa5:'',
+  r2_sat1:'',r2_sat2:'',r2_sat3:'',r2_sat4:'',r2_sat5:'',r2_sat6:'',
+  r3_user_input:'',r3_obj_ms:'',r3_cas:'',
+  r3_sam_val:'',r3_sam_ar:'',
+  r3_anx1:'',r3_anx2:'',r3_anx3:'',r3_anx4:'',r3_anx5:'',r3_anx6:'',
+  r3_sp1:'',r3_sp2:'',r3_sp3:'',r3_sp4:'',
+  r3_pa1:'',r3_pa2:'',r3_pa3:'',r3_pa4:'',r3_pa5:'',
+  r3_sat1:'',r3_sat2:'',r3_sat3:'',r3_sat4:'',r3_sat_att:'',r3_sat5:'',r3_sat6:'',feedback:''
+};
+
+(function(){
+  var ts=Date.now().toString(36),rnd=Math.random().toString(36).substring(2,7);
+  expData.pid='P_'+ts+'_'+rnd;
+  expData.ts_start=new Date().toISOString();
+  WAIT_MS=WAIT_TIMES[Math.floor(Math.random()*WAIT_TIMES.length)];
+  var types=['spinner','thinking'],typeIdx=Math.floor(Math.random()*types.length),vtype=types[typeIdx];
+  group=(vtype==='spinner'?'s':'t')+(WAIT_MS/1000);
+  expData.group=group;expData.r1_obj_ms=WAIT_MS;expData.r2_obj_ms=WAIT_MS;expData.r3_obj_ms=WAIT_MS;expData._vtype=vtype;
+  document.getElementById('consentBox').addEventListener('change',function(){document.getElementById('consentBtn').disabled=!this.checked;});
+  buildSAMTables();
+})();
+
+function shuffleArray(arr){var a=arr.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var tmp=a[i];a[i]=a[j];a[j]=tmp;}return a;}
+function autoResizeTextarea(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}
+function recordDwell(k){var now=Date.now();if(sectionTimestamps[k]&&sectionTimestamps[k].enter){var d=now-sectionTimestamps[k].enter;sectionTimestamps[k].dwell=d;return d;}return 0;}
+function enterSection(k){sectionTimestamps[k]={enter:Date.now(),dwell:0};}
+
+function resetRoundData(r){
+  var fields=['scen','user_input','obj_ms','cas','sam_val','sam_ar','anx1','anx2','anx3','anx4','anx5','anx6','sp1','sp2','sp3','sp4','sp_att','pa1','pa2','pa3','pa4','pa5','sat1','sat2','sat3','sat4','sat5','sat6','sat_att','chat_start','chat_end','chat_dwell_ms','read_dwell_ms','meas_start','meas_end','meas_dwell_ms'];
+  for(var i=0;i<fields.length;i++) expData['r'+r+'_'+fields[i]]='';
+}
+
+function buildSAMTables(){
+  var valHtml='',arHtml='';
+  for(var i=0;i<5;i++){
+    valHtml+='<label class="sam-option" onclick="selectSAM(this,\'_sam_val\',\''+(i+1)+'\')">'+SAM_VAL_SVGS[i]+'<input type="radio" name="sam_val" value="'+(i+1)+'" style="display:none"></label>';
+    arHtml+='<label class="sam-option" onclick="selectSAM(this,\'_sam_ar\',\''+(i+1)+'\')">'+SAM_AR_SVGS[i]+'<input type="radio" name="sam_ar" value="'+(i+1)+'" style="display:none"></label>';
+  }
+  document.getElementById('samValRow').innerHTML=valHtml;
+  document.getElementById('samArRow').innerHTML=arHtml;
+}
+
+// ========== 修复: buildAnxTable ==========
+function buildAnxTable(){
+  var h='<thead><tr><th></th>';
+  ANX_LABELS.forEach(function(l){h+='<th>'+l+'</th>';});
+  h+='</tr></thead>';
+  var b='<tbody>';
+  ANX_ITEMS.forEach(function(item,idx){
+    b+='<tr><td>'+item+'</td>';
+    for(var v=1;v<=4;v++) b+='<td><input type="radio" name="anx'+(idx+1)+'" value="'+v+'"></td>';
+    b+='</tr>';
+  });
+  b+='</tbody>';
+  document.getElementById('anxTable').innerHTML=h+b; // <-- 修复: 原来是 h+b; 没有赋值
+}
+
+// ========== 修复: buildSPTable ==========
+function buildSPTable(){
+  var h='<thead><tr><th></th>';
+  SP_LABELS.forEach(function(l){h+='<th>'+l+'</th>';});
+  h+='</tr></thead>';
+  var b='<tbody>';
+  var itemNum=1;
+
+  // 第1题
+  b+='<tr><td>'+itemNum+'. '+SP_ITEMS[0].substring(SP_ITEMS[0].indexOf('.')+2)+'</td>';
+  for(var v=1;v<=7;v++) b+='<td><input type="radio" name="sp1" value="'+v+'"></td>';
+  b+='</tr>';
+  itemNum++;
+
+  // 第2轮：在第1题后面插入注意力检测题（第2题位置）
+  if(currentRound===2){
+    b+='<tr><td>'+itemNum+'. 为确保问卷质量，请选择"中立"</td>';
+    for(var v=1;v<=7;v++) b+='<td><input type="radio" name="sp_att" value="'+v+'"></td>';
+    b+='</tr>';
+    itemNum++;
+  }
+
+  // 原第2-4题（第2轮中显示为第3-5题）
+  for(var idx=1;idx<SP_ITEMS.length;idx++){
+    b+='<tr><td>'+itemNum+'. '+SP_ITEMS[idx].substring(SP_ITEMS[idx].indexOf('.')+2)+'</td>';
+    for(var v=1;v<=7;v++) b+='<td><input type="radio" name="sp'+(idx+1)+'" value="'+v+'"></td>';
+    b+='</tr>';
+    itemNum++;
+  }
+
+  b+='</tbody>';
+  document.getElementById('spTable').innerHTML=h+b; // <-- 修复: 原来错误写入了 anxTable
+}
+
+function buildPATable(){
+  var h='<thead><tr><th></th><th>①</th><th>②</th><th>③</th><th>④</th><th>⑤</th></tr></thead>';
+  var b='<tbody>';
+  PA_ITEMS.forEach(function(item,idx){
+    b+='<tr><td>'+(idx+1)+'. '+PA_TEXTS[idx]+'</td>';
+    b+='<td><input type="radio" name="pa'+(idx+1)+'" value="1"><br><small>'+item.left+'</small></td>';
+    for(var v=2;v<=4;v++) b+='<td><input type="radio" name="pa'+(idx+1)+'" value="'+v+'"></td>';
+    b+='<td><input type="radio" name="pa'+(idx+1)+'" value="5"><br><small>'+item.right+'</small></td></tr>';
+  });
+  b+='</tbody>';
+  document.getElementById('paTable').innerHTML=h+b;
+}
+
+// ========== 修复: buildSatTable ==========
+function buildSatTable(){
+  var h='<thead><tr><th></th>';
+  SAT_LABELS.forEach(function(l){h+='<th>'+l+'</th>';});
+  h+='</tr></thead>';
+  var b='<tbody>';
+  var itemNum=1;
+
+  for(var idx=0;idx<SAT_ITEMS.length;idx++){
+    // 第3轮：在第4题后（idx==4的位置）插入注意力检测题（第5题位置）
+    if(idx===4 && currentRound===3){
+      b+='<tr><td>'+itemNum+'. 为确保问卷质量，请选择"完全同意"</td>';
+      for(var v=1;v<=7;v++) b+='<td><input type="radio" name="sat_att" value="'+v+'"></td>';
+      b+='</tr>';
+      itemNum++;
+    }
+
+    var name='sat'+(idx+1);
+    b+='<tr><td>'+itemNum+'. '+SAT_ITEMS[idx].substring(SAT_ITEMS[idx].indexOf('.')+2)+'</td>';
+    for(var v=1;v<=7;v++) b+='<td><input type="radio" name="'+name+'" value="'+v+'"></td>';
+    b+='</tr>';
+    itemNum++;
+  }
+
+  b+='</tbody>';
+  document.getElementById('satTable').innerHTML=h+b;
+}
+
+function showCard(id){document.querySelectorAll('.card').forEach(function(c){c.classList.add('hidden');});var el=document.getElementById(id);if(el) el.classList.remove('hidden');window.scrollTo({top:0,behavior:'smooth'});}
+function goTo(id){showCard(id);}
+
+function startRound(r){
+  currentRound=r;resetRoundData(r);
+  roundScenarios=shuffleArray(SCENARIOS_ORIG);
+  var sc=roundScenarios[0];
+  expData['r'+r+'_scen']=sc.sceneType;
+  document.getElementById('chatRoundBadge').textContent='第 '+r+' 轮';
+  document.getElementById('chatRoundTitle').textContent=sc.title;
+  document.getElementById('headerBadge').textContent='第'+r+'轮';
+  document.getElementById('scenarioBox').innerHTML=sc.instruction;
+  document.getElementById('aiMessages').innerHTML='';
+  document.getElementById('waitingBar').classList.add('hidden');
+  document.getElementById('responseArea').classList.add('hidden');
+  document.getElementById('inputArea').classList.remove('hidden');
+  document.getElementById('userInput').value=sc.defaultInput;
+  buildAnxTable();buildSPTable();buildPATable();buildSatTable();
+  document.querySelectorAll('#meas-sam .sam-option').forEach(function(s){s.classList.remove('selected');});
+  document.getElementById('vasSlider').value=50;updateVAS(50);
+  ['meas-cas','meas-sam','meas-anxiety','meas-presence','meas-prompt','meas-satisfaction'].forEach(function(id){var el=document.getElementById(id);if(el) el.classList.add('hidden');});
+  document.getElementById('meas-cas').classList.remove('hidden');
+  enterSection('r'+r+'_chat');showCard('sec-chat');
+  setTimeout(function(){autoResizeTextarea(document.getElementById('userInput'));},50);
+}
+
+function sendQuestion(){
+  var input=document.getElementById('userInput'),question=input.value.trim();
+  if(!question){alert('请输入问题');return;}
+  expData['r'+currentRound+'_user_input']=question;
+  var messages=document.getElementById('aiMessages');
+  messages.innerHTML='<div class="msg msg-user"><div class="msg-bubble">'+escHtml(question)+'</div><div class="msg-avatar" style="background:#4a90d9;color:#fff;font-size:14px">我</div></div>';
+  document.getElementById('inputArea').classList.add('hidden');
+  showWaiting();
+  setTimeout(function(){hideWaiting();showResponse();},WAIT_MS);
+}
+
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function showWaiting(){
+  var bar=document.getElementById('waitingBar');bar.classList.remove('hidden');
+  var avClass='',avContent='',vtype=expData._vtype;
+  if(vtype==='spinner'){avClass='spinner-av';avContent='';}else{avClass='thinking-av';avContent='&#129300;';}
+  bar.innerHTML='<div class="waiting-bar"><div class="waiting-avatar '+avClass+'">'+avContent+'</div><div class="waiting-dots"><span></span><span></span><span></span></div></div>';
+}
+function hideWaiting(){document.getElementById('waitingBar').classList.add('hidden');}
+
+function showResponse(){
+  var sc=roundScenarios[0],messages=document.getElementById('aiMessages'),avContent='',vtype=expData._vtype;
+  if(vtype==='thinking') avContent='&#129300;';else avContent='&#9881;';
+  messages.innerHTML+='<div class="msg msg-ai"><div class="msg-avatar" style="background:#f0f0f0">'+avContent+'</div><div class="msg-bubble">'+sc.response+'</div></div>';
+  expData['r'+currentRound+'_chat_end']=new Date().toISOString();
+  expData['r'+currentRound+'_chat_dwell_ms']=recordDwell('r'+currentRound+'_chat');
+  enterSection('r'+currentRound+'_read');
+  document.getElementById('responseArea').classList.remove('hidden');
+}
+
+function proceedToMeasure(){
+  expData['r'+currentRound+'_read_dwell_ms']=recordDwell('r'+currentRound+'_read');
+  document.getElementById('measRoundBadge').textContent='第 '+currentRound+' 轮';
+  enterSection('r'+currentRound+'_meas');
+  expData['r'+currentRound+'_meas_start']=new Date().toISOString();
+  showCard('sec-measure');
+}
+
+function updateVAS(val){document.getElementById('vasSlider').style.setProperty('--fill-pct',val+'%');}
+
+function validateCAS(){
+  var val=parseInt(document.getElementById('vasSlider').value);
+  if(isNaN(val)){alert('请拖动滑块进行评分');return;}
+  expData['r'+currentRound+'_cas']=val;goToMeasureStep('sam');
+}
+
+function goToMeasureStep(step){
+  ['meas-cas','meas-sam','meas-anxiety','meas-presence','meas-prompt','meas-satisfaction'].forEach(function(id){var el=document.getElementById(id);if(el) el.classList.add('hidden');});
+  var target=document.getElementById('meas-'+step);
+  if(target){target.classList.remove('hidden');setTimeout(function(){target.scrollIntoView({behavior:'smooth',block:'start'});},50);}
+}
+
+function selectSAM(el,suffix,value){
+  el.parentElement.querySelectorAll('.sam-option').forEach(function(s){s.classList.remove('selected');});
+  el.classList.add('selected');el.querySelector('input[type="radio"]').checked=true;
+  if(suffix==='_sam_val') expData['r'+currentRound+'_sam_val']=value;
+  else expData['r'+currentRound+'_sam_ar']=value;
+}
+
+function validateSAM(){
+  if(!expData['r'+currentRound+'_sam_val']){alert('请完成情绪效价评价');return;}
+  if(!expData['r'+currentRound+'_sam_ar']){alert('请完成情绪唤醒度评价');return;}
+  goToMeasureStep('anxiety');
+}
+
+function validateAnx(){
+  for(var i=1;i<=6;i++){
+    var checked=document.querySelector('input[name="anx'+i+'"]:checked');
+    if(!checked){alert('请完成所有题目的作答（第'+i+'题未答）');return;}
+    expData['r'+currentRound+'_anx'+i]=checked.value;
+  }
+  goToMeasureStep('presence');
+}
+
+function validateSP(){
+  var r=currentRound,checked;
+  checked=document.querySelector('input[name="sp1"]:checked');
+  if(!checked){alert('请完成所有题目的作答（第1题未答）');return;}
+  expData['r'+r+'_sp1']=checked.value;
+  if(r===2){
+    checked=document.querySelector('input[name="sp_att"]:checked');
+    if(!checked){alert('请完成所有题目的作答（第2题未答）');return;}
+    expData['r2_sp_att']=checked.value;
+    for(var i=2;i<=4;i++){
+      checked=document.querySelector('input[name="sp'+i+'"]:checked');
+      if(!checked){alert('请完成所有题目的作答（第'+(i+1)+'题未答）');return;}
+      expData['r'+r+'_sp'+i]=checked.value;
+    }
+  }else{
+    for(var i=2;i<=4;i++){
+      checked=document.querySelector('input[name="sp'+i+'"]:checked');
+      if(!checked){alert('请完成所有题目的作答（第'+i+'题未答）');return;}
+      expData['r'+r+'_sp'+i]=checked.value;
+    }
+  }
+  goToMeasureStep('prompt');
+}
+
+function validatePA(){
+  for(var i=1;i<=5;i++){
+    var checked=document.querySelector('input[name="pa'+i+'"]:checked');
+    if(!checked){alert('请完成所有题目的作答（第'+i+'题未答）');return;}
+    expData['r'+currentRound+'_pa'+i]=checked.value;
+  }
+  goToMeasureStep('satisfaction');
+}
+
+function validateSAT(){
+  var r=currentRound;
+  for(var i=1;i<=4;i++){
+    var checked=document.querySelector('input[name="sat'+i+'"]:checked');
+    if(!checked){alert('请完成所有题目的作答（第'+i+'题未答）');return;}
+    expData['r'+r+'_sat'+i]=checked.value;
+  }
+  if(r===3){
+    var attChecked=document.querySelector('input[name="sat_att"]:checked');
+    if(!attChecked){alert('请完成所有题目的作答（第5题未答）');return;}
+    expData['r3_sat_att']=attChecked.value;
+    for(var i=5;i<=6;i++){
+      var checked=document.querySelector('input[name="sat'+i+'"]:checked');
+      if(!checked){alert('请完成所有题目的作答（第'+(i+1)+'题未答）');return;}
+      expData['r'+r+'_sat'+i]=checked.value;
+    }
+  }else{
+    for(var i=5;i<=6;i++){
+      var checked=document.querySelector('input[name="sat'+i+'"]:checked');
+      if(!checked){alert('请完成所有题目的作答（第'+i+'题未答）');return;}
+      expData['r'+r+'_sat'+i]=checked.value;
+    }
+  }
+  finishRound();
+}
+
+function finishRound(){
+  expData['r'+currentRound+'_meas_end']=new Date().toISOString();
+  expData['r'+currentRound+'_meas_dwell_ms']=recordDwell('r'+currentRound+'_meas');
+  if(currentRound<3){
+    var next=currentRound+1;
+    document.getElementById('transTitle').textContent='准备第 '+next+' 轮';
+    document.getElementById('transText').textContent='您已完成第 '+currentRound+' 轮。接下来将进入第 '+next+' 轮体验。';
+    document.getElementById('transBtn').textContent='开始第 '+next+' 轮';
+    document.getElementById('transBtn').onclick=function(){startRound(next);};
+    showCard('sec-transition');
+  }else{showCard('sec-demo');}
+}
+
+function validateDemo(){
+  var gender=document.querySelector('input[name="gender"]:checked'),age=document.getElementById('age').value,aiFreq=document.querySelector('input[name="ai_freq"]:checked');
+  if(!gender){alert('请选择您的性别');return;}
+  if(!age||age<16||age>60){alert('请输入有效年龄（16-60）');return;}
+  if(!aiFreq){alert('请选择您的AI使用频率');return;}
+  expData.gender=gender.value;expData.age=age;expData.ai_freq=aiFreq.value;
+  expData.feedback=document.getElementById('feedback').value.trim(); 
+  showCard('sec-phone');
+}
+
+function finishExperiment(){
+  expData.phone=document.getElementById('phone').value.trim();
+  expData.ts_end=new Date().toISOString();
+  expData.total_duration_ms=Date.now()-new Date(expData.ts_start).getTime();
+  showCard('sec-debrief');document.getElementById('progressFill').style.width='100%';
+  submitToServer(expData);
+}
+
+function submitToServer(data){
+  var url='https://1422594727-ilw5glo3bt.ap-nanjing.tencentscf.com';
+  var submitData={};
+  for(var key in data) if(key.charAt(0)!=='_') submitData[key]=data[key];
+  fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(submitData)})
+  .then(function(r){if(r.ok) console.log('数据已提交');else console.error('提交失败:',r.status);})
+  .catch(function(e){console.error('提交错误:',e);});
+}
+
+// ========== 按轮次顺序输出，含注意力检测题和场景类型 ==========
+function downloadData(){
+  var headers=[
+    'pid','group','gender','age','ai_freq','phone','ts_start','ts_end','total_duration_ms',
+    'r1_scen','r1_chat_start','r1_chat_end','r1_chat_dwell_ms','r1_read_dwell_ms','r1_meas_start','r1_meas_end','r1_meas_dwell_ms',
+    'r1_user_input','r1_obj_ms','r1_cas',
+    'r1_sam_val','r1_sam_ar',
+    'r1_anx1','r1_anx2','r1_anx3','r1_anx4','r1_anx5','r1_anx6',
+    'r1_sp1','r1_sp2','r1_sp3','r1_sp4',
+    'r1_pa1','r1_pa2','r1_pa3','r1_pa4','r1_pa5',
+    'r1_sat1','r1_sat2','r1_sat3','r1_sat4','r1_sat5','r1_sat6',
+    'r2_scen','r2_chat_start','r2_chat_end','r2_chat_dwell_ms','r2_read_dwell_ms','r2_meas_start','r2_meas_end','r2_meas_dwell_ms',
+    'r2_user_input','r2_obj_ms','r2_cas',
+    'r2_sam_val','r2_sam_ar',
+    'r2_anx1','r2_anx2','r2_anx3','r2_anx4','r2_anx5','r2_anx6',
+    'r2_sp1','r2_sp_att','r2_sp2','r2_sp3','r2_sp4',
+    'r2_pa1','r2_pa2','r2_pa3','r2_pa4','r2_pa5',
+    'r2_sat1','r2_sat2','r2_sat3','r2_sat4','r2_sat5','r2_sat6',
+    'r3_scen','r3_chat_start','r3_chat_end','r3_chat_dwell_ms','r3_read_dwell_ms','r3_meas_start','r3_meas_end','r3_meas_dwell_ms',
+    'r3_user_input','r3_obj_ms','r3_cas',
+    'r3_sam_val','r3_sam_ar',
+    'r3_anx1','r3_anx2','r3_anx3','r3_anx4','r3_anx5','r3_anx6',
+    'r3_sp1','r3_sp2','r3_sp3','r3_sp4',
+    'r3_pa1','r3_pa2','r3_pa3','r3_pa4','r3_pa5',
+    'r3_sat1','r3_sat2','r3_sat3','r3_sat4','r3_sat_att','r3_sat5','r3_sat6','feedback' 
+  ];
+  var BOM='\uFEFF',csv=BOM+headers.join(',')+'\n';
+  var row=headers.map(function(h){
+    var val=expData[h]!==undefined?String(expData[h]):'';
+    val=val.replace(/\n/g,' ').replace(/\r/g,'');
+    if(val.indexOf(',')!==-1||val.indexOf('"')!==-1) val='"'+val.replace(/"/g,'""')+'"';
+    return val;
+  });
+  csv+=row.join(',')+'\n';
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  var url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='exp2_'+expData.pid+'_'+expData.group+'.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
