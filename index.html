@@ -449,7 +449,7 @@ var expData={
   expData.pid='P_'+ts+'_'+rnd;
   expData.ts_start=new Date().toISOString();
   WAIT_MS=WAIT_TIMES[Math.floor(Math.random()*WAIT_TIMES.length)];
-  var types=['spinner','thinking'],typeIdx=Math.floor(Math.random()*types.length),vtype=types[typeIdx];
+  var types='thinking',typeIdx=Math.floor(Math.random()*types.length),vtype=types[typeIdx];
   group=(vtype==='spinner'?'s':'t')+(WAIT_MS/1000);
   expData.group=group;expData.r1_obj_ms=WAIT_MS;expData.r2_obj_ms=WAIT_MS;expData.r3_obj_ms=WAIT_MS;expData._vtype=vtype;
   document.getElementById('consentBox').addEventListener('change',function(){document.getElementById('consentBtn').disabled=!this.checked;});
