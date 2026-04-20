@@ -664,7 +664,7 @@ function finishExperiment(){
 }
 
 function submitToServer(data){
-  var url='https://1422594727-ilw5glo3bt.ap-nanjing.tencentscf.com';
+  var url='https://1422594727-3okyj4wsnx.ap-nanjing.tencentscf.com';
   var submitData={};
   for(var key in data) if(key.charAt(0)!=='_') submitData[key]=data[key];
   fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(submitData)})
